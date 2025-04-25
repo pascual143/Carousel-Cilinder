@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrusel Cilíndrico Interactivo</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      perspective: 500px;
+    }
+
+    .carousel-container {
+      position: relative;
+      width: 300px;
+      height: 200px;
+      transform-style: preserve-3d;
+      transition: transform 0.3s ease-out; /* Reducimos la duración de la transición */
+      cursor: grab;
+    }
+
+    .carousel-item {
+      position: absolute;
+      width: 150px;
+      height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 16px;
+      color: white;
+      border-radius: 10px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+      backface-visibility: hidden;
+    }
+
+    .carousel-item a {
+      display: block;
+      width: 100%;
+      height: 100%;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="carousel-container" id="carousel">
+    <div class="carousel-item" data-index="0"><a href="#">Enlace 1</a></div>
+    <div class="carousel-item" data-index="1"><a href="#">Enlace 2</a></div>
+    <div class="carousel-item" data-index="2"><a href="#">Enlace 3</a></div>
+    <div class="carousel-item" data-index="3"><a href="#">Enlace 4</a></div>
+  </div>
+
+  <script>
+    const container = document.getElementById('carousel');
+    const items = document.querySelectorAll('.carousel-item');
+    const numItems = items.length;
+    const radius = 150;
+    const itemAngle = 360 / numItems;
+    const backgrounds = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+
+    let autoRotateAngle = 0;
+    const autoRotateSpeed = 0.1; // Velocidad de rotación automática más lenta
+
+    let isDragging = false;
+    let startX;
+    let currentAngle = 0;
+    let animationFrameId;
+
+    // Inicialización de la posición de los items
+    items.forEach((item, index) => {
+      const angle = index * itemAngle;
+      const x = radius * Math.sin(angle * Math.PI / 180);
+      const z = radius * Math.cos(angle * Math.PI / 180);
+      item.style.transform = `rotateY(${angle}deg) translateZ(${radius}px)`;
+      item.style.backgroundColor = backgrounds[index];
+    });
+
+    function rotateCarousel(angle) {
+      container.style.transform = `rotateY(${angle}deg)`;
+    }
+
+    function autoRotate() {
+      if (!isDragging) {
+        autoRotateAngle += autoRotateSpeed;
+        rotateCarousel(autoRotateAngle);
+      }
+      animationFrameId = requestAnimationFrame(autoRotate);
+    }
+
+    // Iniciar la rotación automática
+    animationFrameId = requestAnimationFrame(autoRotate);
+
+    // Interacción con el ratón (arrastrar)
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      container.style.cursor = 'grabbing';
+      cancelAnimationFrame(animationFrameId); // Detener la rotación automática al empezar a arrastrar
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - startX;
+      const rotationSpeed = 0.2; // Ajusta la sensibilidad del arrastre
+      currentAngle += deltaX * rotationSpeed;
+      rotateCarousel(currentAngle);
+      startX = e.clientX; // Actualizar la posición inicial para el siguiente movimiento
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      container.style.cursor = 'grab';
+      animationFrameId = requestAnimationFrame(autoRotate); // Reanudar la rotación automática al soltar
+    });
+
+    container.addEventListener('mouseleave', () => {
+      if (isDragging) {
+        isDragging = false;
+        container.style.cursor = 'grab';
+        animationFrameId = requestAnimationFrame(autoRotate); // Reanudar si el ratón sale mientras se arrastra
+      }
+    });
+
+    // Interacción con la rueda del ratón (scroll horizontal)
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault(); // Evitar el scroll de la página
+      const scrollSpeed = 5; // Ajusta la sensibilidad del scroll
+      currentAngle += e.deltaY * scrollSpeed; // Usamos deltaY para scroll vertical que simulamos como horizontal
+      rotateCarousel(currentAngle);
+      cancelAnimationFrame(animationFrameId); // Detener la rotación automática al hacer scroll
+      // Reiniciar la rotación automática después de un breve tiempo sin scroll
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        animationFrameId = requestAnimationFrame(autoRotate);
+      }, 200); // Espera 200ms después de dejar de hacer scroll
+    }, { passive: false }); // passive: false es necesario para preventDefault en wheel
+
+    let scrollTimeout;
+
+    // Evitar el comportamiento de arrastrar imágenes
+    container.addEventListener('dragstart', (e) => {
+      e.preventDefault();
+    });
+  </script>
+
+</body>
+</html>
